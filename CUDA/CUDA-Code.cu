@@ -13,18 +13,6 @@ double compute_time_interval(struct timeval start_time, struct timeval end_time)
     return (double)((end_time.tv_sec * 1000000 + end_time.tv_usec) - (start_time.tv_sec * 1000000 + start_time.tv_usec)) / 1000;
 }
 
-//counts the number of active cells in the grid
-int count_active_cells(unsigned int **grid, int width, int heigth) {
-	
-	int active_cells = 0, i, j;
-	
-	for (i = 0; i < heigth; i++)
-		for (j = 0; j < width; j++)
-			active_cells += grid[i * width + j];
-		
-	return active_cells;
-}
-
 //saves the results passed as a parameter in a result file
 void write_to_file(int width, int heigth, int threads, double total_time){
 	
@@ -77,7 +65,7 @@ __global__ void one_round(unsigned int *grid, unsigned int *new_grid, int heigth
 
 
 //main auxiliary function, initializes the grid situation and monitors its evolution
-void play(int width, int heigth, int threads) {
+void play(int width, int heigth, int num_threads) {
 
     int i,j;
     struct timeval start_time, end_time;
@@ -88,8 +76,6 @@ void play(int width, int heigth, int threads) {
     for (i = 0; i < heigth; i++)
         for (j = 0; j < width; j++)
 		    grid[i * width + j] = rand() % 10 >= 7 ? 1 : 0;
-
-    printf("Number of active cells at the beginning of the execution: %d\n", count_active_cells(grid, width, heigth));
 	
     size_t grid_size = heigth * width * sizeof(unsigned int);
     unsigned int *cuda_grid;
@@ -97,7 +83,7 @@ void play(int width, int heigth, int threads) {
     cudaMalloc((void**) &cuda_grid, grid_size);
     cudaMalloc((void**) &cuda_new_grid, grid_size);
     cudaMemcpy(cuda_grid, grid, grid_size, cudaMemcpyHostToDevice);
-    dim3 threads(threads);
+    dim3 threads(num_threads);
     dim3 chunks((int)(heigth * width + threads.x - 1) / threads.x);
 
     for (i = 0; i < DEFAULT_ITERATIONS; i++) {
@@ -114,10 +100,9 @@ void play(int width, int heigth, int threads) {
         total_time += (double)compute_time_interval(start_time, end_time);
     }
 
-    write_to_file(width, heigth, threads, total_time);
+    write_to_file(width, heigth, num_threads, total_time);
     cudaFree(cuda_grid);
     cudaFree(cuda_new_grid);
-	printf("Number of active cells at the end of the execution: %d\n", count_active_cells(grid, width, heigth));
     free(grid);
 }
 
