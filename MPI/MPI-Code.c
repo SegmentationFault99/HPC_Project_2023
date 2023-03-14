@@ -24,18 +24,6 @@ double compute_time_interval(struct timeval start_time, struct timeval end_time)
     return (double)((end_time.tv_sec * 1000000 + end_time.tv_usec) - (start_time.tv_sec * 1000000 + start_time.tv_usec))/1000;
 }
 
-//counts the number of active cells in the grid
-int count_active_cells(unsigned int **grid, int width, int heigth) {
-	
-	int active_cells = 0, i, j;
-	
-	for (i = 0; i < heigth; i++)
-		for (j = 0; j < width; j++)
-			active_cells += grid[i][j];
-		
-	return active_cells;
-}
-
 //saves the results passed as a parameter in a result file
 void write_to_file(int width, int heigth, int processes, int nodes, double total_time){
 	
@@ -136,8 +124,6 @@ void play(struct chunk *local_chunk, int heigth, int width, int nodes) {
 	struct timeval start_time, end_time;
 	double total_time = 0.0;
 	
-	printf("Number of active cells at the beginning of the execution: %d\n", count_active_cells(local_chunk->matrix, width, heigth));
-	
 	MPI_Datatype row_type;
 	MPI_Type_contiguous(local_chunk->columns, MPI_UNSIGNED, &row_type);
 	MPI_Type_commit(&row_type);
@@ -166,7 +152,6 @@ void play(struct chunk *local_chunk, int heigth, int width, int nodes) {
 		write_to_file(width, heigth, local_chunk->mpi_comm_world_size, nodes, total_time);
 
 	MPI_Type_free(&row_type);
-	printf("Number of active cells at the end of the execution: %d\n", count_active_cells(local_chunk->matrix, width, heigth));
 	delete_matrix(local_chunk->matrix);
 }
 
