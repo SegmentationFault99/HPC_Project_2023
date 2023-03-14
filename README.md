@@ -30,7 +30,7 @@ Execution (vectorized version)
 ```
 
 <br>
-The third parameter (0 or 1) tells the program to which result file write, since the same source code is used for the vectorized and the non-vectorized version.
+The third parameter (0 or 1) tells the program to which result file write, since the same source code is used both for the vectorized and the non-vectorized version.
 <br><br>
 
 ## OpenMP Implementation
