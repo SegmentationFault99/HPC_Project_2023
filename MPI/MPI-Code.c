@@ -81,7 +81,7 @@ void init_chunk(struct chunk *local_chunk, int rows, int columns, int upper_neig
 }
 
 //computes a single round of the game
-void one_round(struct chunk *local_chunk, unsigned int **next_matrix, int heigth, int width, MPI_Datatype row_type) {
+void one_round(struct chunk *local_chunk, unsigned int **next_matrix, MPI_Datatype row_type) {
 	
 	int i, j;
 	MPI_Status status;
@@ -103,7 +103,7 @@ void one_round(struct chunk *local_chunk, unsigned int **next_matrix, int heigth
 			for (i_neighbour = i - 1; i_neighbour <= i + 1; i_neighbour++)
 				for (j_neighbour = j - 1; j_neighbour <= j + 1; j_neighbour++)
 					if (!(i == i_neighbour && j == j_neighbour))
-						active_neighbours += local_chunk->matrix[i_neighbour][(j_neighbour + width) % width];
+						active_neighbours += local_chunk->matrix[i_neighbour][(j_neighbour + local_chunk->columns) % local_chunk->columns];
 
 			//update of the value of the cell according to the rules of the game
 			if(local_chunk->matrix[i][j] == 1 && (active_neighbours < 2 || active_neighbours > 3))
@@ -131,18 +131,18 @@ void play(struct chunk *local_chunk, int heigth, int width, int nodes) {
 	//evolution
 	for (i = 0; i < DEFAULT_ITERATIONS; i++) {
 		
-		unsigned int **next_matrix = create_matrix(local_chunk->rows, width);
+		unsigned int **next_matrix = create_matrix(local_chunk->rows, local_chunk->columns);
 		
 		if (local_chunk->rank == 0) {
 			
 			gettimeofday(&start_time, NULL);
-			one_round(local_chunk, next_matrix, heigth, width, row_type);
+			one_round(local_chunk, next_matrix, row_type);
 			gettimeofday(&end_time, NULL);
 			
 			total_time += compute_time_interval(start_time, end_time);
 		}
 		else
-			one_round(local_chunk, next_matrix, heigth, width, row_type);
+			one_round(local_chunk, next_matrix, row_type);
 		
 		swap_matrix(&local_chunk->matrix, &next_matrix);
 		delete_matrix(next_matrix);
