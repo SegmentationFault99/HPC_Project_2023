@@ -8,7 +8,7 @@
 //computes the difference between two times, in milliseconds
 double compute_time_interval(struct timeval start_time, struct timeval end_time)
 {
-	return (double)((end_time.tv_sec - start_time.tv_sec)*1000000 + (end_time.tv_usec - start_time.tv_usec))) / 1000;
+	return (double)((end_time.tv_sec - start_time.tv_sec)*1000000 + (end_time.tv_usec - start_time.tv_usec)) / 1000;
 }
 
 //counts the number of active cells in the grid
@@ -46,7 +46,7 @@ unsigned int **create_matrix(int heigth, int width)
 	unsigned int **matrix = (unsigned int **) malloc(heigth * sizeof(unsigned int *));
 
 	for (i = 0; i < heigth; i++)
-		matrix[i] = &(grid[width *i]);
+		matrix[i] = &(grid[width * i]);
 
 	return matrix;
 }
