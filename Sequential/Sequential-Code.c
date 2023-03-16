@@ -42,8 +42,8 @@ void write_to_file(int width, int heigth, double total_time, int what_file)
 unsigned int **create_matrix(int heigth, int width)
 {
 	int i;
-	unsigned int *grid = (unsigned int *) malloc(heigth *width* sizeof(unsigned int));
-	unsigned int **matrix = (unsigned int **) malloc(heigth* sizeof(unsigned int *));
+	unsigned int *grid = (unsigned int *) malloc(heigth * width * sizeof(unsigned int));
+	unsigned int **matrix = (unsigned int **) malloc(heigth * sizeof(unsigned int *));
 
 	for (i = 0; i < heigth; i++)
 		matrix[i] = &(grid[width *i]);
