@@ -66,16 +66,15 @@ __global__ void one_round(unsigned int *grid, unsigned int *new_grid, int heigth
 void play(int width, int heigth, int num_threads)
 {
 	int i, j;
-	struct timeval start_time, end_time;
 	double total_time = 0.0;
 	unsigned int *grid = (unsigned int *) malloc(heigth *width* sizeof(unsigned int));
 
 	//initialization
 	for (i = 0; i < heigth; i++)
 		for (j = 0; j < width; j++)
-			grid[i *width + j] = rand() % 10 >= 7 ? 1 : 0;
+			grid[i * width + j] = rand() % 10 >= 7 ? 1 : 0;
 
-	size_t grid_size = heigth *width* sizeof(unsigned int);
+	size_t grid_size = heigth * width * sizeof(unsigned int);
 	unsigned int *cuda_grid;
 	unsigned int *cuda_new_grid;
 	cudaMalloc((void **) &cuda_grid, grid_size);
@@ -86,6 +85,7 @@ void play(int width, int heigth, int num_threads)
 
 	for (i = 0; i < DEFAULT_ITERATIONS; i++)
 	{
+		struct timeval start_time, end_time;
 		gettimeofday(&start_time, NULL);
 
 		//computation of the game evolution in this iteration
