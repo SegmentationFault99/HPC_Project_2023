@@ -12,8 +12,8 @@ struct chunk
 	int columns;
 	int upper_neighbour;
 	int lower_neighbour;
-	int rank;
-	int mpi_comm_world_size;
+	int mpi_rank;
+	int mpi_size;
 	unsigned int **matrix;
 };
 
@@ -38,8 +38,8 @@ void write_to_file(int width, int heigth, int processes, int nodes, double total
 unsigned int **create_matrix(int heigth, int width)
 {
 	int i;
-	unsigned int *grid = (unsigned int *) malloc(heigth * width * sizeof(unsigned int));
-	unsigned int **matrix = (unsigned int **) malloc(heigth * sizeof(unsigned int *));
+	unsigned int *grid = (unsigned int *) malloc(heigth * width * mpi_sizeof(unsigned int));
+	unsigned int **matrix = (unsigned int **) malloc(heigth * mpi_sizeof(unsigned int *));
 
 	for (i = 0; i < heigth; i++)
 		matrix[i] = &(grid[width * i]);
@@ -63,14 +63,14 @@ void delete_matrix(unsigned int **matrix)
 }
 
 //initializes the values in an instance of the chunk structure
-void init_chunk(struct chunk *local_chunk, int rows, int columns, int upper_neighbour, int lower_neighbour, int rank, int size)
+void init_chunk(struct chunk *local_chunk, int rows, int columns, int upper_neighbour, int lower_neighbour, int mpi_rank, int mpi_size)
 {
 	local_chunk->rows = rows;
 	local_chunk->columns = columns;
 	local_chunk->upper_neighbour = upper_neighbour;
 	local_chunk->lower_neighbour = lower_neighbour;
-	local_chunk->rank = rank;
-	local_chunk->mpi_comm_world_size = size;
+	local_chunk->mpi_rank = mpi_rank;
+	local_chunk->mpi_size = mpi_size;
 	local_chunk->matrix = create_matrix(rows, columns);
 
 	int i, j;
@@ -120,7 +120,6 @@ void one_round(struct chunk *local_chunk, unsigned int **next_matrix, MPI_Dataty
 void play(struct chunk *local_chunk, int heigth, int width, int nodes)
 {
 	int i;
-	struct timeval start_time, end_time;
 	double total_time = 0.0;
 
 	MPI_Datatype row_type;
@@ -130,9 +129,10 @@ void play(struct chunk *local_chunk, int heigth, int width, int nodes)
 	//evolution
 	for (i = 0; i < DEFAULT_ITERATIONS; i++)
 	{
+		struct timeval start_time, end_time;
 		unsigned int **next_matrix = create_matrix(local_chunk->rows, local_chunk->columns);
 
-		if (local_chunk->rank == 0)
+		if (local_chunk->mpi_rank == 0)
 		{
 			gettimeofday(&start_time, NULL);
 			one_round(local_chunk, next_matrix, row_type);
@@ -147,8 +147,8 @@ void play(struct chunk *local_chunk, int heigth, int width, int nodes)
 		delete_matrix(next_matrix);
 	}
 
-	if (local_chunk->rank == 0)
-		write_to_file(width, heigth, local_chunk->mpi_comm_world_size, nodes, total_time);
+	if (local_chunk->mpi_rank == 0)
+		write_to_file(width, heigth, local_chunk->mpi_size, nodes, total_time);
 
 	MPI_Type_free(&row_type);
 	delete_matrix(local_chunk->matrix);
@@ -176,26 +176,28 @@ int main(int argc, char **argv)
 
 	nodes = atoi(argv[3]);
 
-	int rank, size;
+	int mpi_rank, mpi_size;
 
 	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_mpi_size(MPI_COMM_WORLD, &mpi_size);
+	MPI_Comm_mpi_rank(MPI_COMM_WORLD, &mpi_rank);
 
 	//broadcasting of the parameters to each worker node
 	MPI_Bcast(&heigth, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&width, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	//each process computes the size of its chunk, leftovers are added to the last process
-	int local_rows = (heigth / size) + 2;
-	if (rank == size - 1)
-		local_rows += heigth % size;
+	//each process computes the mpi_size of its chunk of data, leftovers are added to the last process
+	//the "+2" is necessary because each process will receive also one row from its upper neighbour and
+	//one row from its lower neighbour in order to correctly calculate the new state of its cells
+	int process_rows = (heigth / mpi_size) + 2;
+	if (mpi_rank == mpi_size - 1)
+		process_rows += heigth % mpi_size;
 
 	struct chunk local_chunk;
-	int upper_neighbour = (rank == 0) ? size - 1 : rank - 1;
-	int lower_neighbour = (rank == size - 1) ? 0 : rank + 1;
+	int upper_neighbour = (mpi_rank == 0) ? mpi_size - 1 : mpi_rank - 1;
+	int lower_neighbour = (mpi_rank == mpi_size - 1) ? 0 : mpi_rank + 1;
 
-	init_chunk(&local_chunk, local_rows, width, upper_neighbour, lower_neighbour, rank, size);
+	init_chunk(&local_chunk, process_rows, width, upper_neighbour, lower_neighbour, mpi_rank, mpi_size);
 	play(&local_chunk, heigth, width, nodes);
 
 	return MPI_Finalize();
