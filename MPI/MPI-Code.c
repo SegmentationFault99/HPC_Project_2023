@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 	
-	//each process computes the mpi_size of its chunk of data, leftovers are added to the last process
+	//each process computes the size of its chunk of data, leftovers are added to the last process
 	//the "+2" is necessary because each process will receive also one row from its upper neighbour and
 	//one row from its lower neighbour in order to correctly calculate the new state of its cells
 	int process_rows = (heigth / mpi_size) + 2;
